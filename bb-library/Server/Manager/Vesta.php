@@ -1,4 +1,5 @@
 <?php
+
 /**
  * BoxBilling
  *
@@ -45,7 +46,14 @@ class Server_Manager_Vesta extends Server_Manager
      */
     public function getLoginUrl()
     {
-        return 'http://www.google.com?q=cpanel';
+
+     $host = 'http';
+		if ($this->_config['secure']) {
+			$host .= 's';
+		}
+		$host .= '://' . $this->_config['host'] . ':'.$this->_config['port'].'/';
+
+        return $host;
     }
 
     /**
@@ -94,11 +102,9 @@ $result = curl_exec($curl);
 curl_close($curl);
 		
 		if($result == 0)
-			return true;
+			return 0;
 		else
-			return false;
-
-
+			return $result;
     }
 
 
@@ -179,6 +185,8 @@ $postvars = array(
 
     {
 
+           
+
            $p = $a->getPackage();
 		$resourcePlan = $p;
 		
@@ -189,8 +197,6 @@ $vst_returncode = 'yes';
 
 // New Account
 $package = 'default';
-$fist_name = 'Rust';
-$last_name = 'Cohle';
 
 // Prepare POST query
 $postvars = array(
@@ -202,43 +208,38 @@ $postvars = array(
     'arg3' => $client->getEmail(),
     'arg4' => $package,
     'arg5' => $a->getUsername(),
-    'arg6' => $a->getUsername(),
-    'arg7' =>'',
-    'arg8' =>'',
-    'arg9' =>''
-
-
-						
+    'arg6' => $a->getUsername()						
 
 );    
 // Make request and create user 
-
-		$result = $this->_makeRequest($postvars);
-
+$result = $this->_makeRequest($postvars);
+if($result == 0)
+{
 		
 
 // Create Domain Prepare POST query
-$postvars = array(
+$postvars2 = array(
     
 
     'returncode' => 'yes',
     'cmd' => 'v-add-domain',
     'arg1' => $a->getUsername(),
-    'arg2' => $a->getDomain(),
-    'arg3' =>'',
-    'arg4' =>'',
-    'arg5' =>'',
-    'arg6' =>'',
-    'arg7' =>'',
-    'arg8' =>'',
-    'arg9' =>''
-
+    'arg2' => $a->getDomain()
 );
 
-$result = $this->_makeRequest($postvars);
+$result2 = $this->_makeRequest($postvars2);
 
+}
 
-	return $result;
+else {throw new Server_Exception('Server Manager Vesta CP Error: User name exists on server, please choose another one '.$result);
+}
+
+if($result2 != '0'){
+throw new Server_Exception('Server Manager Vesta CP Error: Create Domain failure '.$result2);
+}
+
+	return true;
+
 
 
 	}
@@ -315,13 +316,6 @@ $postvars = array(
 		
 );  
   
-// Make request and unsuspend user 
-// Boxbilling trowing error 505 on this particular action 
-// So is not working anymore on ver 3.6.11
-// Will try  a work arround later
-
-  		
-   
 
 
 		return $this->_makeRequest($postvars);
@@ -358,14 +352,7 @@ $postvars = array(
     'returncode' => $vst_returncode,
     'cmd' => $vst_command,
     'arg1' => $a->getUsername(),
-    'arg2' => '',
-    'arg3' =>'',
-    'arg4' =>'',
-    'arg5' =>'',
-    'arg6' =>'',
-    'arg7' =>'',
-    'arg8' =>'',
-    'arg9' =>''
+    'arg2' => 'no'
 
 
 						
@@ -374,15 +361,18 @@ $postvars = array(
 // Make request and delete user 
 
 		$result = $this->_makeRequest($postvars);
+if($result != '0'){
+throw new Server_Exception('Server Manager Vesta CP Error: Cancel Account Error '.$result);
+}
 
 
 
-if($a->getReseller()) {
-            $this->getLog()->info('Canceling reseller hosting account');
-        } else {
-            $this->getLog()->info('Canceling shared hosting account');
-        }
+
+return true;
+
 	}
+
+
 
     /**
      * Change account package on server
@@ -391,23 +381,43 @@ if($a->getReseller()) {
      */
 	public function changeAccountPackage(Server_Account $a, Server_Package $p)
     {
-        if($a->getReseller()) {
-            $this->getLog()->info('Updating reseller hosting account');
-        } else {
-            $this->getLog()->info('Updating shared hosting account');
-        }
         
-        $p->getName();
-        $p->getQuota();
-        $p->getBandwidth();
-        $p->getMaxSubdomains();
-        $p->getMaxParkedDomains();
-        $p->getMaxDomains();
-        $p->getMaxFtp();
-        $p->getMaxSql();
-        $p->getMaxPop();
+
+$package = $a->getPackage()->getName();
+
         
-        $p->getVestaValue('param_name');
+        
+
+// Server credentials
+$vst_username = $this->_config['username'];
+$vst_password = $this->_config['password'];
+$vst_command = 'v-change-user-package';
+$vst_returncode = 'yes';
+
+
+// Prepare POST query
+$postvars = array(
+    
+    'returncode' => $vst_returncode,
+    'cmd' => $vst_command,
+    'arg1' => $a->getUsername(),
+    'arg2' => $package,
+    'arg3' => 'no'
+
+			
+
+);    
+// Make request and change package
+
+		$result = $this->_makeRequest($postvars);
+
+if($result != '0'){
+throw new Server_Exception('Server Manager Vesta CP Error: Change User package Account Error '.$result);
+}
+
+
+return true;
+
 	}
 
     /**
@@ -417,11 +427,10 @@ if($a->getReseller()) {
      */
     public function changeAccountUsername(Server_Account $a, $new)
     {
-        if($a->getReseller()) {
-            $this->getLog()->info('Changing reseller hosting account username');
-        } else {
-            $this->getLog()->info('Changing shared hosting account username');
-        }
+        {
+throw new Server_Exception('Server Manager Vesta CP Error: Not Supported');
+}
+
     }
 
     /**
@@ -431,11 +440,10 @@ if($a->getReseller()) {
      */
     public function changeAccountDomain(Server_Account $a, $new)
     {
-        if($a->getReseller()) {
-            $this->getLog()->info('Changing reseller hosting account domain');
-        } else {
-            $this->getLog()->info('Changing shared hosting account domain');
-        }
+        {
+throw new Server_Exception('Server Manager Vesta CP Error: Not Supported');
+}
+
     }
 
     /**
@@ -445,11 +453,39 @@ if($a->getReseller()) {
      */
     public function changeAccountPassword(Server_Account $a, $new)
     {
-        if($a->getReseller()) {
-            $this->getLog()->info('Changing reseller hosting account password');
-        } else {
-            $this->getLog()->info('Changing shared hosting account password');
-        }
+        
+
+           
+        // Server credentials
+$vst_username = $this->_config['username'];
+$vst_password = $this->_config['password'];
+$vst_command = 'v-change-user-password';
+$vst_returncode = 'yes';
+
+
+// Prepare POST query
+$postvars = array(
+    
+    'returncode' => $vst_returncode,
+    'cmd' => $vst_command,
+    'arg1' => $a->getUsername(),
+    'arg2' => $new
+			
+
+);    
+// Make request and change password
+
+$result = $this->_makeRequest($postvars);
+
+if($result != '0'){
+throw new Server_Exception('Server Manager Vesta CP Error: Change Password Account Error '.$result);
+}
+
+
+
+        
+return true;
+
     }
 
     /**
@@ -459,10 +495,11 @@ if($a->getReseller()) {
      */
     public function changeAccountIp(Server_Account $a, $new)
     {
-        if($a->getReseller()) {
-            $this->getLog()->info('Changing reseller hosting account ip');
-        } else {
-            $this->getLog()->info('Changing shared hosting account ip');
-        }
+        
+      {
+throw new Server_Exception('Server Manager Vesta CP Error: Not Supported');
+}
+
+
     }
 }
